@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Video } from "lucide-react"
+import Link from "next/link"
 
 export default function HomePage() {
   return (
@@ -27,10 +28,13 @@ export default function HomePage() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link href={"/upload"}>
+         
           <Button size="lg" className="text-lg px-8">
             Start Generating Clips
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
+           </Link>
 
           <Button size="lg" variant="outline" className="text-lg px-8">
             Watch Demo
