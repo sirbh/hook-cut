@@ -1,7 +1,6 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { NextResponse } from "next/server";
-import crypto from "crypto";
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
@@ -16,8 +15,35 @@ export async function POST(req: Request) {
     const { fileType, fileName, fileSize } = await req.json();
 
     const extension = validateFile({ fileType, fileName, fileSize });
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("user_id")?.value;
 
-    const fileKey = `uploads/${crypto.randomUUID()}.${extension}`;
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findFirst({
+      where:{
+        user_id:userId
+      }
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const project = await prisma.project.create({
+      data: {
+        userId:user.id,
+        rawVideoS3Key: "", // placeholder, will update after upload
+        status: "NEW",
+        
+      },
+    });
+
+    // Generate S3 key (use projectId)
+    const fileKey = `users/${userId}/projects/${project.id}/raw/original.${extension}`;
+
 
     // 🔀 Decide strategy
     if (fileSize <= MULTIPART_THRESHOLD) {
@@ -26,6 +52,16 @@ export async function POST(req: Request) {
         fileKey,
         fileType,
       });
+
+      await prisma.project.update({
+        where:{
+          id:project.id
+        },
+        data:{
+          rawVideoS3Key:result.fileKey,
+          status:"UPLOADED"
+        }
+      })
 
       return NextResponse.json(result);
     }
@@ -94,7 +130,7 @@ async function handleSingleUpload({
     Expires: 600, // 10 minutes
   });
 
-  console.log(fields)
+  console.log(fields);
 
   return {
     strategy: "single",
@@ -105,6 +141,8 @@ async function handleSingleUpload({
 }
 
 import { CreateMultipartUploadCommand } from "@aws-sdk/client-s3";
+import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
 
 async function handleMultipartUpload({ fileKey }: { fileKey: string }) {
   const command = new CreateMultipartUploadCommand({

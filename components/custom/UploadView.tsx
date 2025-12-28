@@ -10,20 +10,21 @@ import axios from "axios" // Using axios for simpler multipart progress
 const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB per part
 
 export default function UploadView() {
-    const [file, setFile] = useState<File | null>(null)
+    // const [file, setFile] = useState<File | null>(null)
     const [loading, setLoading] = useState(false)
     const [progress, setProgress] = useState(0)
 
     function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0]
         if (!file) return
-        setFile(file)
+        handleStart(file)
     }
 
     // --- Strategy 1: Single Upload (Presigned POST) ---
     async function performSingleUpload(
         uploadUrl: string,
-        fields: Record<string, string>
+        fields: Record<string, string>,
+        file:File
     ) {
         const formData = new FormData()
         Object.entries(fields).forEach(([k, v]) => formData.append(k, v))
@@ -65,7 +66,7 @@ export default function UploadView() {
 
 
     // --- Strategy 2: Multipart Upload ---
-    async function performMultipartUpload(uploadId: string, fileKey: string) {
+    async function performMultipartUpload(uploadId: string, fileKey: string, file:File) {
         const totalParts = Math.ceil(file!.size / CHUNK_SIZE)
         const completedParts = []
         let uploadedBytes = 0
@@ -107,8 +108,7 @@ export default function UploadView() {
         setProgress(100)
     }
 
-    async function handleStart() {
-        if (!file) return
+    async function handleStart(file:File) {
         setLoading(true)
         setProgress(0)
 
@@ -133,9 +133,9 @@ export default function UploadView() {
 
             // 2️⃣ Execute Strategy
             if (data.strategy === "single") {
-                await performSingleUpload(data.uploadUrl, data.fields)
+                await performSingleUpload(data.uploadUrl, data.fields, file)
             } else {
-                await performMultipartUpload(data.uploadId, data.fileKey)
+                await performMultipartUpload(data.uploadId, data.fileKey, file)
             }
 
             toast.success("Upload complete! Processing video...")
@@ -163,9 +163,6 @@ export default function UploadView() {
                 className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30 p-12 hover:border-primary transition bg-card"
             >
                 <Upload className="h-10 w-10 mb-4 text-muted-foreground" />
-                <span className="font-medium text-center">
-                    {file ? file.name : "Select your video file"}
-                </span>
                 <span className="text-sm text-muted-foreground mt-2">
                     MP4, WebM, MOV, MKV • Max 1 GB
                 </span>
@@ -191,8 +188,8 @@ export default function UploadView() {
                 <Button
                     size="lg"
                     className="w-full h-12 text-lg font-bold"
-                    disabled={!file || loading}
-                    onClick={handleStart}
+                    // disabled={!file || loading}
+                    // onClick={handleStart}
                 >
                     {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Start Generation"}
                 </Button>

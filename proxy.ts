@@ -2,19 +2,19 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 export function proxy(req: NextRequest) {
-  const anonId = req.cookies.get("anon_id")?.value
+  const userId = req.cookies.get("user_id")?.value
   const { pathname } = req.nextUrl
 
-  // Protect upload page
+  // Protect upload page (redirect)
   if (pathname.startsWith("/upload")) {
-    if (!anonId) {
+    if (!userId) {
       return NextResponse.redirect(new URL("/", req.url))
     }
   }
 
-  // Protect API (NO redirect)
+  // Protect API (no redirect, just 401)
   if (pathname.startsWith("/api/aws/s3")) {
-    if (!anonId) {
+    if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
