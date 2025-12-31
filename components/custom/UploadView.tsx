@@ -20,6 +20,23 @@ export default function UploadView() {
         handleStart(file)
     }
 
+    const handleStart2 = async () => {
+    try {
+      // Replace these with actual project info you have
+      const projectId = "PROJECT_ID_HERE";
+      const rawVideoKey = "RAW_VIDEO_KEY_HERE";
+
+      // 1️⃣ Send POST request to enqueue video clipping job
+      const response = await axios.post("/api/start-cliping", { projectId, rawVideoKey });
+      const { messageId } = response.data;
+
+
+    } catch (err) {
+      console.error("Failed to enqueue clipping job:", err);
+      alert("Cannot start clipping. Please try again.");
+    }
+  };
+
     // --- Strategy 1: Single Upload (Presigned POST) ---
     async function performSingleUpload(
         uploadUrl: string,
@@ -188,10 +205,10 @@ export default function UploadView() {
                 <Button
                     size="lg"
                     className="w-full h-12 text-lg font-bold"
-                    // disabled={!file || loading}
-                    // onClick={handleStart}
+                    disabled={loading}
+                    onClick={handleStart2}
                 >
-                    {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Start Generation"}
+                    {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Start Clipping"}
                 </Button>
             </div>
         </motion.section>

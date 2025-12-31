@@ -18,6 +18,7 @@ export default function HomePage() {
     suspense: false,
   });
 
+
   // Handle Start click
   const handleStart = async () => {
     try {
